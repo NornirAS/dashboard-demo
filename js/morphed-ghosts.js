@@ -14,7 +14,8 @@ const morphedGhosts = {
           .map(key => {
             const data = key.split("/");
             return `Domain: ${data[0].toLowerCase()} Service: ${data[1].toLowerCase()} ID: ${data[2]}`;
-        });
+          })
+          .sort();
       }
     });
 
