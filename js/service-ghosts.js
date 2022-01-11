@@ -19,7 +19,6 @@ const serviceGhosts = {
 
     const changeServiceGhost = async (ghostID) => {
       store.closeWS();
-      store.resetChart(myLineChart);
       store.initiateWS(ghostID);
       await store.getGhostStatus(ghostID);
     };
@@ -28,8 +27,8 @@ const serviceGhosts = {
       serviceGhosts,
       selectedGhost,
       changeServiceGhost
-    }
+    };
   }
 }
 
-createApp(serviceGhosts).mount("#serviceGhosts");
+createApp(serviceGhosts).mount("#service-ghosts");

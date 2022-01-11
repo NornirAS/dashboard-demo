@@ -3,11 +3,11 @@ const store = {
     username: null,
     token: null,
     ws: null,
-    id: null,
-    data: {},
     ghosts: [],
     selectedGhost: null,
-    ghostStatus: {}
+    ghostStatus: {},
+    temperature: null,
+    humidity: null
   }),
 
   setUsername(newValue) {
@@ -26,48 +26,6 @@ const store = {
     this.state.ws = null;
   },
 
-  setDataObject(id) {
-    if (!this.state.data[id]) {
-      this.state.data[id] = {
-        time: null,
-        temperature: [],
-        humidity: []
-      };
-    }
-  },
-
-  removeData() {
-    this.state.data = {};
-  },
-
-  setId(id) {
-    this.state.id = id;
-  },
-
-  setTime({ id, time }) {
-    this.state.data[id].time = time;
-  },
-
-  setTemperature({ id, temp }) {
-    this.state.data[id].temperature.push({ x: new Date(), y: temp });
-    const firstElemTime = this.state.data[id].temperature[0].x.getTime();
-    const now = Date.now();
-    const isOld = now - firstElemTime > 60_000;
-    if (isOld) {
-      this.state.data[id].temperature.shift();
-    }
-  },
-
-  setHumidity({ id, hum }) {
-    this.state.data[id].humidity.push({ x: new Date(), y: hum });
-    const firstElemTime = this.state.data[id].humidity[0].x.getTime();
-    const now = Date.now();
-    const isOld = now - firstElemTime > 60_000;
-    if (isOld) {
-      this.state.data[id].humidity.shift();
-    }
-  },
-
   setGhosts(newValue) {
     this.state.ghosts = newValue;
   },
@@ -78,6 +36,27 @@ const store = {
 
   setSelectedGhost(newValue) {
     this.state.selectedGhost = newValue;
+  },
+
+  setTemperature(newValue) {
+    this.state.temperature = newValue;
+  },
+
+  setHumidity(newValue) {
+    this.state.humidity = newValue;
+  },
+
+  async init({ username, token }) {
+    this.setUsername(username);
+    this.setToken(token);
+
+    await this.getGhosts();
+    const serviceGhosts = this.state.ghosts.find(ghost => ghost.service === "warehouse");
+    if (serviceGhosts) {
+      const { ghostID } = serviceGhosts;
+      store.initiateWS(ghostID);
+      await store.getGhostStatus(ghostID);
+    }
   },
 
   async getGhosts() {
@@ -139,32 +118,23 @@ const store = {
     ws.onmessage = ({ data }) => {
       const { RTW } = JSON.parse(data);
       const {
-        ID: id,
-        TIME: time,
-        TEMP: temp,
-        HUM: hum,
+        SENSOR_ID,
+        SENSOR_TIME,
+        SENSOR_TEMP,
+        SENSOR_HUM,
       } = RTW;
 
-      if (id) {
-        this.setId(id);
-        this.setDataObject(id);
-      }
+      console.log(RTW);
 
-      if (time) {
-        this.setTime({ id, time });
-      }
+      if (SENSOR_TEMP) this.setTemperature(SENSOR_TEMP);
+      if (SENSOR_HUM) this.setHumidity(SENSOR_HUM);
 
-      if (typeof temp === "number") {
-        this.setTemperature({ id, temp });
-        const data = [...this.state.data[id].temperature];
-        this.updateChart(myLineChart, data, "Temperature", id);
-      }
-
-      if (typeof hum === "number") {
-        this.setHumidity({ id, hum });
-        const data = [...this.state.data[id].humidity];
-        this.updateChart(myLineChart, data, "Humidity", id);
-      }
+      const myDiv = document.getElementById('logs');
+      const isScrolled = myDiv.scrollTop == myDiv.scrollHeight - myDiv.offsetHeight;
+      myDiv.innerHTML += `<p>[${SENSOR_TIME}] Sensor ID: ${SENSOR_ID} -- Temp: ${SENSOR_TEMP} -- Hum: ${SENSOR_HUM}</p>`;
+      if(isScrolled) {
+        myDiv.scrollTop = myDiv.scrollHeight;
+      };
     };
 
     ws.onclose = (e) => {
@@ -184,80 +154,4 @@ const store = {
     this.state.ws.close();
     this.removeWS();
   },
-
-  /**
-   * Update the chart with new incomming data.
-   * @param {chartJS} chart chart.js instance
-   * @param {Array} data integer
-   * @param {String} label of dataset to update
-   */
-  updateChart(chart, data, label, id) {
-    const dataset = chart.data.datasets.filter(dataset => dataset.label === `${label} ${id}`);
-    const colors = {
-      temperature: [
-        {
-          backgroundColor: 'rgba(231,74,59)',
-          borderColor: 'rgba(231,74,59)'
-        },
-        {
-          backgroundColor: 'rgba(246,194,62)',
-          borderColor: 'rgba(246,194,62)'
-        },
-        {
-          backgroundColor: 'rgba(28,200,138)',
-          borderColor: 'rgba(28,200,138)'
-        }
-      ],
-      humidity: [
-        {
-          backgroundColor: 'rgba(78,115,223, 0.6)',
-          borderColor: 'rgba(78,115,223)',
-        },
-        {
-          backgroundColor: 'rgba(188,223,78, 0.6)',
-          borderColor: 'rgba(188,223,78)'
-        },
-        {
-          backgroundColor: 'rgba(223,114,78, 0.6)',
-          borderColor: 'rgba(223,114,78)'
-        }
-      ]
-    };
-    if (dataset.length >= 1) {
-      dataset[0].data = data;
-      chart.update();
-    } else {
-      switch (label) {
-        case 'Temperature':
-          chart.data.datasets.push({
-            label: `${label} ${id}`,
-            type: 'line',
-            data,
-            yAxisID: 'A',
-            fill: false,
-            backgroundColor: colors.temperature[id - 1].backgroundColor,
-            borderColor: colors.temperature[id - 1].borderColor,
-            borderWidth: 3
-          });
-          break;
-        case 'Humidity':
-          chart.data.datasets.push({
-            label: `${label} ${id}`,
-            type: 'bar',
-            data,
-            yAxisID: 'B',
-            backgroundColor: colors.humidity[id - 1].backgroundColor,
-            borderColor: colors.humidity[id - 1].borderColor,
-            borderWidth: 1
-          });
-          break;
-      }
-      chart.update();
-    }
-  },
-  resetChart(chart) {
-    this.removeData();
-    chart.data.datasets = [];
-    chart.update();
-  }
 }

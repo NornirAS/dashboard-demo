@@ -35,9 +35,9 @@ This service will have the same schema as the "sensors" service but we need to a
 
 ```
 <RTW>
-<ID>@DEMO/SENSORS#ID@</ID>
-<TEMP>@DEMO/SENSORS#TEMP@</TEMP>
-<HUM>@DEMO/SENSORS#HUM@</HUM>
+<SENSOR_ID>@DEMO/SENSORS#ID@</SENSOR_ID>
+<SENSOR_TEMP>@DEMO/SENSORS#TEMP@</SENSOR_TEMP>
+<SENSOR_HUM>@DEMO/SENSORS#HUM@</SENSOR_HUM>
 </RTW>
 ```
 

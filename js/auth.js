@@ -1,12 +1,12 @@
 const auth = {
   template: `
-    <form  @submit.prevent="submit(username, token)">
+    <form  @submit.prevent="submit(userData)">
       <div class="form-row align-items-center">
         <div class="col-auto">
-          <input v-model="username" type="text" class="form-control" placeholder="Email">
+          <input v-model="userData.username" type="email" class="form-control" placeholder="Email">
         </div>
         <div class="col-auto">
-          <input v-model="token" type="text" class="form-control" placeholder="Token">
+          <input v-model="userData.token" type="password" class="form-control" placeholder="Token">
         </div>
         <div class="col-auto">
           <button type="submit" class="btn btn-primary">Submit</button>
@@ -16,28 +16,19 @@ const auth = {
   `,
 
   setup() {
-    const username = ref(null);
-    const token = ref(null);
-    const ghosts = computed(() => store.state.ghosts);
-    const serviceGhosts = computed(() => ghosts.value.filter(ghost => ghost.service === "warehouse"));
+    const userData = reactive({
+      username: 'gio.elektronikk@gmail.com',
+      token: ref('')
+    });
 
-    const submit = async (username, token) => {
-      store.setUsername(username);
-      store.setToken(token);
-
-      await store.getGhosts();
-      if (serviceGhosts.value.length >= 1) {
-        const { ghostID } = serviceGhosts.value[0]
-        store.initiateWS(ghostID);
-        await store.getGhostStatus(ghostID);
-      }
-    }
+    const submit = async (data) => {
+      store.init(data);
+    };
 
     return {
-      username,
-      token,
+      userData,
       submit
-    }
+    };
   }
 };
 

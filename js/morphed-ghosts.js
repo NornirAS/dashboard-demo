@@ -22,8 +22,8 @@ const morphedGhosts = {
     return {
       morphedGhosts,
       morphedGhostData
-    }
+    };
   }
 }
 
-createApp(morphedGhosts).mount("#morphedGhosts");
+createApp(morphedGhosts).mount("#morphed-ghosts");
